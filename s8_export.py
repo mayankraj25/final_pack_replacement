@@ -1,42 +1,4 @@
-"""
-s8_export.py  -  STAGE 8: hand it to After Effects
 
-Turns everything the pipeline computed into two files an editor can
-actually use.
-
-WHAT GETS WRITTEN
------------------
-matte_objN.mov    ProRes 4444 with a real alpha channel. Opaque where
-                  the label is, transparent everywhere else. Drops
-                  into AE as a track matte, which is the native way
-                  editors already restrict a layer to a moving shape.
-
-ae_setup.jsx      An ExtendScript. The editor runs it from
-                  File > Scripts > Run Script File and the project
-                  builds itself: matte imported, placeholder layer
-                  created, Corner Pin effect keyframed on every frame,
-                  opacity zeroed where tracking failed, and markers
-                  dropped on frames worth checking.
-
-WHY CORNER PIN
---------------
-Tracking data in After Effects has no separate file format - it lives
-as keyframes on layer properties. A Mocha planar track ends up as
-keyframes on a Corner Pin effect. So does this. From the editor's
-side the project looks exactly like one they tracked themselves,
-except the tracking is already done.
-
-That also means every part of it stays editable. If a keyframe is
-slightly off, they nudge it. Nothing here is baked.
-
-CODEC WARNING
--------------
-ProRes 4444 is used because it carries an alpha channel. H.264 does
-not - it will encode without error and silently discard the
-transparency, and the matte will be useless.
-
-RUN:  py s8_export.py
-"""
 
 import os
 import json

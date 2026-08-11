@@ -1,42 +1,4 @@
-"""
-s6_smooth.py  -  STAGE 6: remove the frame-to-frame wobble
 
-Takes the per-frame corners from stage 5 and smooths each corner's
-path through time.
-
-WHY THIS STAGE EXISTS AT ALL
-----------------------------
-A 99% inlier rate says the fit agrees with the points. It does not
-say the result is temporally stable. Sub-pixel noise in the mask and
-in the point tracks still lands as a pixel or two of wobble per
-frame, and at 30fps that reads as shimmer on the composited label.
-
-Jitter is the thing editors spend hours fixing by hand. This is the
-stage that removes it, and it's about twenty lines of real work.
-
-HOW SAVITZKY-GOLAY WORKS
-------------------------
-Take a window of consecutive frames - say 7. Fit the smoothest simple
-curve (a parabola) through the corner's position across those 7
-frames. Replace the middle frame's value with the curve's value.
-Slide the window forward, repeat.
-
-Real motion is smooth, so a curve follows it. Noise is random, so a
-curve physically cannot follow it. That's the whole trick.
-
-A plain moving average would also remove noise, but it flattens
-genuine acceleration - if the box speeds up, averaging drags the
-estimate backwards. Fitting a curve keeps the acceleration.
-
-THE ONE RULE THAT MATTERS
--------------------------
-Never smooth across invalid frames. If frames 40-45 have no valid
-fit, a window spanning that gap drags garbage into frames 38 and 47.
-This script splits the sequence into runs of consecutive valid frames
-and smooths each run independently.
-
-RUN:  py s6_smooth.py
-"""
 
 import os
 import json

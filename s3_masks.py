@@ -1,36 +1,4 @@
-"""
-s3_masks.py  -  STAGE 3: propagate the label mask across every frame
 
-Takes the frame-0 seed from stage 2 and uses SAM2's video predictor
-to produce a pixel-accurate mask of the label on every frame.
-
-BOX vs POLYGON SEEDS
---------------------
-If stage 2 gave a box, it goes to SAM2 as a box prompt.
-If stage 2 gave a polygon, it is filled into a binary mask and passed
-as a mask prompt - which handles tilted or odd-shaped labels that an
-axis-aligned box would enclose badly.
-
-Either way the refinement clicks are sent as a second prompt on the
-same frame, which is what stops SAM2 grabbing the whole bottle.
-
-TWO SETS OF MASKS ARE WRITTEN
------------------------------
-masks_raw/    hard binary, no feathering.
-              Stage 4 needs these - it places tracking points based
-              on the mask, and a feathered edge would put points in
-              the blurry transition zone where they don't belong.
-
-masks_clean/  morphology + feathered edges.
-              Stage 8 turns these into the After Effects track matte.
-              A hard binary edge composites like a paper cutout; a
-              1-2px feather blends into the plate properly.
-
-Feathering early would destroy information stage 4 needs, so both
-versions are kept.
-
-RUN:  py s3_masks.py
-"""
 
 import os
 import json

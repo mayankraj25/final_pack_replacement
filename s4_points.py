@@ -1,34 +1,4 @@
-"""
-s4_points.py  -  STAGE 4: dense point tracking
 
-This is the stage that makes the pipeline better than Mocha.
-
-WHY IT MATTERS
---------------
-Mocha tracks 3-4 points. A flat-surface transform has 8 unknowns, and
-4 points give exactly 8 equations - a perfect but fragile fit with no
-margin. One point drifting on a reflection shifts the whole solution.
-That is the mathematical origin of Mocha's jitter, and fixing it by
-hand is most of the 8-12 hours on a complex shot.
-
-This tracks 300-800 points instead. That's an over-determined system,
-so bad points get identified and thrown out (stage 5 does that with
-MAGSAC++) while the solution barely moves. The tracker also reports
-per-point visibility, so a hand crossing the label excludes those
-points rather than corrupting the fit.
-
-THE RISK THIS ALSO TESTS
-------------------------
-Point trackers cannot track featureless surfaces. A plain cream
-shampoo label has almost no texture in the middle. So instead of a
-naive uniform grid, this seeds points three ways and reports how many
-genuinely trackable features it found. If that number is low, the
-console says so - and that changes stage 5's design.
-
-RUN
-  py s4_points.py --seed-only     fast texture check, no tracking
-  py s4_points.py                 the real run (slow on CPU)
-"""
 
 import os
 import json

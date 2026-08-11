@@ -1,17 +1,4 @@
-"""
-s1_frames.py  -  STAGE 1: video -> numbered frames
 
-Extracts every frame as a numbered JPEG and records the video's
-fps / dimensions for later stages.
-
-Filenames are PURE NUMERIC (0000.jpg). SAM2's loader runs int() on
-every filename in the folder, so "frame_0000.jpg" crashes it, and so
-does any stray json or preview image sitting in the same folder.
-This folder holds frames and nothing else - the script wipes it on
-each run to guarantee that.
-
-RUN:  py s1_frames.py
-"""
 
 import os
 import json

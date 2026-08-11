@@ -1,23 +1,4 @@
-"""
-s2_seed.py  -  STAGE 2: tell the pipeline which label to track
 
-TWO WAYS TO MARK A LABEL
--------------------------
-BOX      Press B. Drag an axis-aligned rectangle. Fast, fine for
-         most shots.
-
-POLYGON  Press P. Click around the label's outline. Use this when
-         the label is tilted, is an odd shape, or when a rectangle
-         would swallow a neighbouring product.
-
-After marking the shape, you add refinement clicks:
-  LEFT-click   = this IS the label   (green dot)
-  RIGHT-click  = this is NOT it      (red dot)
-
-Press Q at the mode picker when you've done all labels.
-
-RUN:  py s2_seed.py
-"""
 
 import os
 import json
@@ -195,7 +176,7 @@ def choose_mode(display_img, obj_index, existing, scale):
 def main():
     os.makedirs(PREVIEWS, exist_ok=True)
 
-    f0_path = os.path.join(FRAMES_DIR, "0002.jpg")
+    f0_path = os.path.join(FRAMES_DIR, "0000.jpg")
     frame = cv2.imread(f0_path)
     if frame is None:
         raise FileNotFoundError(f"Could not read {f0_path}\nRun s1_frames.py first.")

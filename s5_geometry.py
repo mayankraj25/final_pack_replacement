@@ -1,41 +1,4 @@
-"""
-s5_geometry.py  -  STAGE 5: turn point tracks into a per-frame shape
 
-Takes the hundreds of tracked points from stage 4 and works out, for
-every frame, how the label surface has moved and warped relative to
-the reference frame.
-
-THIS IS WHERE WE BEAT MOCHA
----------------------------
-Mocha fits a transform to 3-4 points. A flat-surface transform has 8
-unknowns, so 4 points give exactly 8 equations - a perfect fit with
-zero margin. One point drifting on a reflection moves the entire
-solution, and that is where the jitter comes from.
-
-Here we fit to several hundred points. That is massively
-over-determined, so MAGSAC++ can identify which points disagree with
-the consensus and discard them. Fifty bad points out of four hundred
-barely move the answer.
-
-Two useful properties fall out of this approach:
-
-1. The corner ordering is automatically stable. We transform ONE
-   reference quad by each frame's homography, rather than extracting
-   corners from each frame's mask independently. So "top-left" stays
-   top-left even through heavy rotation - no corner-flip artefacts.
-
-2. The inlier ratio is a free confidence signal. If only 30% of
-   points agree with the fitted model, something is wrong on that
-   frame even if everything else looks fine. Stage 7 uses this.
-
-WHAT IT WRITES
---------------
-geometry.json   per frame: 4 corners, the 3x3 homography, inlier
-                ratio, and a valid flag
-previews/geometry.mp4   the fitted quad drawn on the footage
-
-RUN:  py s5_geometry.py
-"""
 
 import os
 import json
@@ -72,8 +35,8 @@ MIN_INLIER_RATIO = 0.40
 
 # Sanity limits on the fitted quad. Catches blown-up solutions that
 # are mathematically valid but physically nonsense.
-MAX_AREA_RATIO = 6.0    # quad can't grow more than 6x the reference
-MIN_AREA_RATIO = 0.05   # or shrink below 5%
+MAX_AREA_RATIO = 10.0   # quad can't grow more than 10x the reference
+MIN_AREA_RATIO = 0.03   # or shrink below 3%
 
 RENDER_PREVIEW = True
 PREVIEW_WIDTH  = 1280
@@ -93,19 +56,42 @@ GEOM_PREVIEW = os.path.join(PREVIEWS, "geometry.mp4")
 # Reference shape
 # ------------------------------------------------------------------
 
+def reference_quad_from_points(ref_points, ref_visible):
+    """
+    Build the reference quad from the actual tracked points rather
+    than from the mask. The tracked points sit on real label features
+    (text corners, graphic edges), so their extremes match the label
+    boundaries more tightly than a mask-fitted rectangle.
+    """
+    pts = ref_points[ref_visible]
+    if len(pts) < 4:
+        raise RuntimeError("Not enough visible points on reference frame")
+
+    # Convex hull of all visible points
+    hull = cv2.convexHull(pts.reshape(-1, 1, 2).astype(np.float32))
+    hull = hull.reshape(-1, 2)
+
+    # Fit a rotated rectangle to the hull — tighter than fitting to
+    # the mask because the points only cover the printed label area,
+    # not any blank margin the mask might include
+    rect = cv2.minAreaRect(hull.reshape(-1, 1, 2).astype(np.float32))
+    box = cv2.boxPoints(rect)
+
+    return order_quad(box)
+
 def reference_quad_from_mask(mask):
     """
-    The label's shape on the reference frame, as 4 corners.
+    The label's shape as 4 corners, fitted to a binary mask.
 
     minAreaRect gives the tightest rotated rectangle around the mask.
-    Every other frame's quad is this shape pushed through that
-    frame's homography, which is what keeps corner identity stable
-    across the whole clip.
+    Every other frame's quad is this shape pushed through that frame's
+    homography, which is what keeps corner identity stable across the
+    whole clip.
     """
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,
                                    cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
-        raise RuntimeError("Reference frame mask is empty.")
+        raise RuntimeError("Reference mask is empty.")
 
     largest = max(contours, key=cv2.contourArea)
     rect = cv2.minAreaRect(largest)
@@ -330,7 +316,36 @@ def main():
             raise FileNotFoundError(f"No reference mask at {ref_mask_path}")
         print("Using SAM2 mask as reference")
 
-    ref_quad = reference_quad_from_mask(ref_mask)
+    ref_frame_entry = tracks_data["frames"][REFERENCE_FRAME]
+    ref_all = np.array(ref_frame_entry["points"], np.float32)
+    ref_visible = np.array(ref_frame_entry["visible"], bool)
+
+    # The polygon you drew in stage 2 IS the label boundary - use it as
+    # ground truth. Point-based hulls can under-represent the shape if
+    # texture is uneven (e.g. corners cluster near a logo, and the
+    # plain-colour background between logo and edges finds nothing),
+    # which produces a quad smaller than the real label. That was the
+    # cause of the misshapen composite - the tracked shape didn't match
+    # the actual label extent.
+    SEED_PATH = os.path.join(OUTPUT_ROOT, "seed_boxes.json")
+    with open(SEED_PATH, "r") as f:
+        seed = json.load(f)
+    seed_obj = [o for o in seed["objects"] if o["obj_id"] == OBJ_ID][0]
+
+    if seed_obj.get("polygon"):
+        poly_mask = np.zeros(
+            (tracks_data["frame_height"], tracks_data["frame_width"]), np.uint8
+        )
+        pts = np.array(seed_obj["polygon"], np.int32).reshape(-1, 1, 2)
+        cv2.fillPoly(poly_mask, [pts], 255)
+        ref_quad = reference_quad_from_mask(poly_mask)
+        print("Reference quad from the polygon you drew (authoritative shape)")
+    elif ref_visible.sum() >= 20:
+        ref_quad = reference_quad_from_points(ref_all, ref_visible)
+        print("Reference quad from tracked points (no polygon available)")
+    else:
+        ref_quad = reference_quad_from_mask(ref_mask)
+        print("Reference quad from SAM2 mask (fallback)")
     reference_area = quad_area(ref_quad)
     print(f"Reference quad from frame {REFERENCE_FRAME}, "
           f"area {reference_area:,.0f} px")
