@@ -1,25 +1,19 @@
 # Core
 numpy
 opencv-python
-pyyaml
 scipy
-pillow
-common
+pillow          
+pyyaml          
 
-# Video IO (ships its own ffmpeg binary - no separate install needed)
 imageio
 imageio-ffmpeg
 
-# Deep learning
 torch
 torchvision
 
 # SAM2 / SAMURAI - install one of these separately, not via this file:
 #   pip install "https://github.com/facebookresearch/sam2/archive/refs/heads/main.zip"
 #   pip install "https://github.com/yangchris11/samurai/archive/refs/heads/master.zip"
-#
-# CoTracker3 is loaded via torch.hub at runtime - no pip install needed,
-# but it downloads from GitHub on first run.
-#
-# Optional, only if you add stage 7 (old label removal):
-#   pip install "https://github.com/sczhou/ProPainter/archive/refs/heads/main.zip"
+
+
+# CoTracker3 is loaded via torch.hub at runtime - no pip install needed

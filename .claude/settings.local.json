@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venv/bin/python3 -c \"import cv2, numpy, scipy\")",
+      "Bash(venv/bin/pip install *)",
+      "Bash(venv/bin/python3 pipeline.py s5)",
+      "Bash(venv/bin/python3 pipeline.py s6)",
+      "Bash(venv/bin/python3 pipeline.py s9)",
+      "Bash(venv/bin/python3 *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(pip index *)",
+      "Bash(git rm *)",
+      "Bash(python3 -m py_compile pipeline.py)",
+      "Bash(echo \"none found: $?\")",
+      "Bash(mkdir -p /tmp/diffcheck)",
+      "Bash(git show *)",
+      "Bash(python3 -)"
+    ]
+  }
+}
